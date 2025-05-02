@@ -2,6 +2,6 @@ requests==2.32.3
 pyTelegramBotAPI==4.22.1
 rich==13.9.2
 faker==30.0.0
-user-agent==0.1.14
+user-agent==0.1.10
 flask==3.0.3
 gunicorn==23.0.0
