@@ -13,7 +13,7 @@ import uuid
 app = Flask(__name__)
 token = '7196328739:AAH7JzdUEvWm2VbrPAO4HxkHDwzHHhmRnAo'
 bot = telebot.TeleBot(token, parse_mode="HTML")
-WEBHOOK_URL = "https://yourapp.onrender.com/webhook"  # Replace with Render URL after deployment
+WEBHOOK_URL = "https://tgbot-3-21or.onrender.com"  # Replace with Render URL after deployment
 
 # Store state
 a, b = 0, 0
